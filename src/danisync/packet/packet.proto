@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package packet;
+
+option java_package = "packet";
+option java_outer_classname = "protoPacket";
+
+message info {
+	string nam = 1;
+	int64 len = 2;
+	int64 ver = 3;
+}
+
+message resp {
+	string res = 1;
+	sint32 ind = 2;
+}
+
+message data {
+	int32 num = 1;
+	bytes dat = 2;
+}
+
+message crcInfo {
+	int32 num = 1;
+	int32 csz = 2;
+	repeated string crc = 3;
+	repeated int64 ver = 4;
+}
+
+message crcReq {
+	string crc = 1;
+	int64 ver = 2;
+}
+
+message chunkReq {
+	sint32 ind = 1;
+	int64 crc = 2;
+	string nam = 3;
+}
