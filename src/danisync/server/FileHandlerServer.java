@@ -5,6 +5,7 @@
  */
 package danisync.server;
 
+import com.google.protobuf.ByteString;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -19,6 +20,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 import packet.protoPacket.resp;
+import packet.protoPacket.data;
 
 /**
  *
@@ -75,10 +77,6 @@ public class FileHandlerServer {
      */
     protected File crcIndex;
     /**
-     * Canale di scrittura del file indice
-     */
-    protected FileChannel fcCRCIndex;
-    /**
      * Numero di pacchetti del file indice
      */
     protected long nCRCIndexPackets;
@@ -86,6 +84,10 @@ public class FileHandlerServer {
      * Versione del file determinata dal crc calcolato sul file indice
      */
     protected long version;
+    /**
+     * Contatore dei retry
+     */
+    protected int RetryCount;
 
     /**
      * Costruttore che crea il FileChannel di lettura e scrittura sul file,
@@ -96,12 +98,13 @@ public class FileHandlerServer {
      * @param ServerFile il file da sincronizzare
      * @param FileLength la grandezza del file
      * @param ChunkSize la grandezza dei pezzi
+     * @param CRCIndexLength la grandezza del file indice
      * @throws IOException se la creazione del canale non va a buon fine
      * @throws NumberFormatException se ci sono errori di lettura del file
      * indice
      * @throws MyExc se c'è un errore nella lettura della versione
      */
-    public FileHandlerServer(File ServerFile, long FileLength, int ChunkSize) throws IOException, NumberFormatException, MyExc {
+    public FileHandlerServer(File ServerFile, long FileLength, int ChunkSize, long CRCIndexLength) throws IOException, NumberFormatException, MyExc {
         this.ServerFile = ServerFile;
         this.ChunkSize = ChunkSize;
         if (this.ServerFile.exists()) {
@@ -121,7 +124,7 @@ public class FileHandlerServer {
             ServerFile.createNewFile();
             this.fcServerRead = new FileInputStream(this.ServerFile).getChannel();
             this.fcServerWrite = FileChannel.open(this.ServerFile.toPath(), StandardOpenOption.WRITE);
-            
+
             if (FileLength % 2 == 0) {
                 nPackets = FileLength / PacketLength;
                 nChunks = FileLength / this.ChunkSize;
@@ -132,26 +135,170 @@ public class FileHandlerServer {
         }
 
         this.crcIndex = new File("Indexes\\" + this.ServerFile.getName() + ".crc");
-        this.fcCRCIndex = FileChannel.open(this.crcIndex.toPath(), StandardOpenOption.WRITE);
         if (this.crcIndex.exists()) {
             readDigests();
         }
+        if (CRCIndexLength % 2 == 0) {
+            nCRCIndexPackets = CRCIndexLength / PacketLength;
+        } else {
+            nCRCIndexPackets = CRCIndexLength / PacketLength + 1;
+        }
+    }
+    
+    protected void setChunkToRecv(int ChunkLength) {
+        ChunkToRecv = new byte[ChunkLength];
+    }
+    
+    /**
+     * Metodo che aggiunge un pacchetto dati al pezzo di file da ricevere
+     * 
+     * @param packet il pacchetto dati
+     * @param packetIndex l'indice del pacchetto
+     * @return il pacchetto di risposta
+     */
+    protected resp addChunkPacket(data packet, int packetIndex) {
+        resp respPacket;
+
+        if (packet.getNum() == packetIndex) {
+            ByteString bsPacket = packet.getDat();
+            byte[] bPacket = bsPacket.toByteArray();
+            for(int i = 0; i < PacketLength; i++) {
+                ChunkToRecv[packetIndex * PacketLength + i] = bPacket[i];
+            }
+            
+            respPacket = resp.newBuilder()
+                    .setRes("ok")
+                    .build();
+
+            RetryCount = 0;
+        } else {
+            if (RetryCount < 3) {
+                respPacket = resp.newBuilder()
+                        .setRes("wp") // wp: wrong packet
+                        .setInd(packetIndex) // right packet index
+                        .build();
+                RetryCount++;
+            } else {
+                respPacket = resp.newBuilder()
+                        .setRes("mrr") // mrr: max retry reached
+                        .build();
+                RetryCount = 0;
+            }
+        }
+
+        return respPacket;
     }
 
+    protected resp getCRCIndexInfoRespPacket() {
+        resp CRCIndexInfoRespPacket;
+        CRCIndexInfoRespPacket = resp.newBuilder()
+                .setRes("ok")
+                .build();
+
+        return CRCIndexInfoRespPacket;
+    }
+
+    /**
+     * Metodo che aggiunge il pacchetto ricevuto al file indice in caso il
+     * numero sia corretto, altrimenti richiede il pacchetto con il numero
+     * corretto, per un massimo di tre volte
+     *
+     * @param packet Il pacchetto da aggiungere al file
+     * @param packetIndex l'indice corretto
+     * @return il pacchetto di risposta
+     * @throws IOException se ci sono errore durante la scrittura del pacchetto
+     */
+    protected resp addCRCIndexPacket(data packet, int packetIndex) throws IOException {
+        resp respPacket;
+
+        if (packet.getNum() == packetIndex) {
+            ByteString bsPacket = packet.getDat();
+            // accodo il pacchetto al file
+            Files.write(crcIndex.toPath(), bsPacket.toByteArray(), StandardOpenOption.APPEND);
+
+            respPacket = resp.newBuilder()
+                    .setRes("ok")
+                    .build();
+
+            RetryCount = 0;
+        } else {
+            if (RetryCount < 3) {
+                respPacket = resp.newBuilder()
+                        .setRes("wp") // wp: wrong packet
+                        .setInd(packetIndex) // right packet index
+                        .build();
+                RetryCount++;
+            } else {
+                respPacket = resp.newBuilder()
+                        .setRes("mrr") // mrr: max retry reached
+                        .build();
+                RetryCount = 0;
+            }
+        }
+
+        return respPacket;
+    }
+
+    /**
+     * Metodo che crea il pacchetto di risposta al pacchetto informazioni
+     *
+     * @return il pacchetto di risposta
+     */
     protected resp getInfoRespPacket() {
-        resp ProtoInfoRespPacket;
+        resp infoRespPacket;
         if (this.startIndex != -1) {
-            ProtoInfoRespPacket = resp.newBuilder()
+            infoRespPacket = resp.newBuilder()
                     .setRes("ok")
                     .setInd(this.startIndex)
                     .build();
         } else {
-            ProtoInfoRespPacket = resp.newBuilder()
-                    .setRes("fae") // fae = file already exists
+            infoRespPacket = resp.newBuilder()
+                    .setRes("fae")
                     .build();
         }
 
-        return ProtoInfoRespPacket;
+        return infoRespPacket;
+    }
+
+    /**
+     * Metodo che aggiunge il pacchetto ricevuto al file in caso il numero sia
+     * corretto, altrimenti richiede il pacchetto con il numero corretto, per un
+     * massimo di tre volte
+     *
+     * @param packet Il pacchetto da aggiungere al file
+     * @param packetIndex l'indice corretto
+     * @return il pacchetto protobuf di risposta
+     * @throws IOException
+     */
+    public resp addPacket(data packet, int packetIndex) throws IOException {
+        resp respPacket;
+
+        if (packet.getNum() == packetIndex) {
+            ByteString bsPacket = packet.getDat();
+            // accodo il pacchetto al file
+            Files.write(ServerFile.toPath(), bsPacket.toByteArray(), StandardOpenOption.APPEND);
+
+            respPacket = resp.newBuilder()
+                    .setRes("ok")
+                    .build();
+
+            RetryCount = 0;
+        } else {
+            if (RetryCount < 3) {
+                respPacket = resp.newBuilder()
+                        .setRes("wp") // wp: wrong packet
+                        .setInd(packetIndex) // right packet index
+                        .build();
+                RetryCount++;
+            } else {
+                respPacket = resp.newBuilder()
+                        .setRes("mrr") // mrr: max retry reached
+                        .build();
+                RetryCount = 0;
+            }
+        }
+
+        return respPacket;
     }
 
     /**
