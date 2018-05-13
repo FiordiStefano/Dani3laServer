@@ -1777,14 +1777,22 @@ public final class protoPacket {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>int32 num = 1;</code>
-     */
-    int getNum();
-
-    /**
-     * <code>int32 csz = 2;</code>
+     * <code>int32 csz = 1;</code>
      */
     int getCsz();
+
+    /**
+     * <code>repeated int64 len = 2;</code>
+     */
+    java.util.List<java.lang.Long> getLenList();
+    /**
+     * <code>repeated int64 len = 2;</code>
+     */
+    int getLenCount();
+    /**
+     * <code>repeated int64 len = 2;</code>
+     */
+    long getLen(int index);
 
     /**
      * <code>repeated string crc = 3;</code>
@@ -1831,8 +1839,8 @@ public final class protoPacket {
       super(builder);
     }
     private crcInfo() {
-      num_ = 0;
       csz_ = 0;
+      len_ = java.util.Collections.emptyList();
       crc_ = com.google.protobuf.LazyStringArrayList.EMPTY;
       ver_ = java.util.Collections.emptyList();
     }
@@ -1870,12 +1878,28 @@ public final class protoPacket {
             }
             case 8: {
 
-              num_ = input.readInt32();
+              csz_ = input.readInt32();
               break;
             }
             case 16: {
-
-              csz_ = input.readInt32();
+              if (!((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+                len_ = new java.util.ArrayList<java.lang.Long>();
+                mutable_bitField0_ |= 0x00000002;
+              }
+              len_.add(input.readInt64());
+              break;
+            }
+            case 18: {
+              int length = input.readRawVarint32();
+              int limit = input.pushLimit(length);
+              if (!((mutable_bitField0_ & 0x00000002) == 0x00000002) && input.getBytesUntilLimit() > 0) {
+                len_ = new java.util.ArrayList<java.lang.Long>();
+                mutable_bitField0_ |= 0x00000002;
+              }
+              while (input.getBytesUntilLimit() > 0) {
+                len_.add(input.readInt64());
+              }
+              input.popLimit(limit);
               break;
             }
             case 26: {
@@ -1916,6 +1940,9 @@ public final class protoPacket {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
       } finally {
+        if (((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+          len_ = java.util.Collections.unmodifiableList(len_);
+        }
         if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
           crc_ = crc_.getUnmodifiableView();
         }
@@ -1939,23 +1966,37 @@ public final class protoPacket {
     }
 
     private int bitField0_;
-    public static final int NUM_FIELD_NUMBER = 1;
-    private int num_;
-    /**
-     * <code>int32 num = 1;</code>
-     */
-    public int getNum() {
-      return num_;
-    }
-
-    public static final int CSZ_FIELD_NUMBER = 2;
+    public static final int CSZ_FIELD_NUMBER = 1;
     private int csz_;
     /**
-     * <code>int32 csz = 2;</code>
+     * <code>int32 csz = 1;</code>
      */
     public int getCsz() {
       return csz_;
     }
+
+    public static final int LEN_FIELD_NUMBER = 2;
+    private java.util.List<java.lang.Long> len_;
+    /**
+     * <code>repeated int64 len = 2;</code>
+     */
+    public java.util.List<java.lang.Long>
+        getLenList() {
+      return len_;
+    }
+    /**
+     * <code>repeated int64 len = 2;</code>
+     */
+    public int getLenCount() {
+      return len_.size();
+    }
+    /**
+     * <code>repeated int64 len = 2;</code>
+     */
+    public long getLen(int index) {
+      return len_.get(index);
+    }
+    private int lenMemoizedSerializedSize = -1;
 
     public static final int CRC_FIELD_NUMBER = 3;
     private com.google.protobuf.LazyStringList crc_;
@@ -2022,11 +2063,15 @@ public final class protoPacket {
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
-      if (num_ != 0) {
-        output.writeInt32(1, num_);
-      }
       if (csz_ != 0) {
-        output.writeInt32(2, csz_);
+        output.writeInt32(1, csz_);
+      }
+      if (getLenList().size() > 0) {
+        output.writeUInt32NoTag(18);
+        output.writeUInt32NoTag(lenMemoizedSerializedSize);
+      }
+      for (int i = 0; i < len_.size(); i++) {
+        output.writeInt64NoTag(len_.get(i));
       }
       for (int i = 0; i < crc_.size(); i++) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 3, crc_.getRaw(i));
@@ -2046,13 +2091,23 @@ public final class protoPacket {
       if (size != -1) return size;
 
       size = 0;
-      if (num_ != 0) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(1, num_);
-      }
       if (csz_ != 0) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(2, csz_);
+          .computeInt32Size(1, csz_);
+      }
+      {
+        int dataSize = 0;
+        for (int i = 0; i < len_.size(); i++) {
+          dataSize += com.google.protobuf.CodedOutputStream
+            .computeInt64SizeNoTag(len_.get(i));
+        }
+        size += dataSize;
+        if (!getLenList().isEmpty()) {
+          size += 1;
+          size += com.google.protobuf.CodedOutputStream
+              .computeInt32SizeNoTag(dataSize);
+        }
+        lenMemoizedSerializedSize = dataSize;
       }
       {
         int dataSize = 0;
@@ -2092,10 +2147,10 @@ public final class protoPacket {
       packet.protoPacket.crcInfo other = (packet.protoPacket.crcInfo) obj;
 
       boolean result = true;
-      result = result && (getNum()
-          == other.getNum());
       result = result && (getCsz()
           == other.getCsz());
+      result = result && getLenList()
+          .equals(other.getLenList());
       result = result && getCrcList()
           .equals(other.getCrcList());
       result = result && getVerList()
@@ -2111,10 +2166,12 @@ public final class protoPacket {
       }
       int hash = 41;
       hash = (19 * hash) + getDescriptor().hashCode();
-      hash = (37 * hash) + NUM_FIELD_NUMBER;
-      hash = (53 * hash) + getNum();
       hash = (37 * hash) + CSZ_FIELD_NUMBER;
       hash = (53 * hash) + getCsz();
+      if (getLenCount() > 0) {
+        hash = (37 * hash) + LEN_FIELD_NUMBER;
+        hash = (53 * hash) + getLenList().hashCode();
+      }
       if (getCrcCount() > 0) {
         hash = (37 * hash) + CRC_FIELD_NUMBER;
         hash = (53 * hash) + getCrcList().hashCode();
@@ -2252,10 +2309,10 @@ public final class protoPacket {
       }
       public Builder clear() {
         super.clear();
-        num_ = 0;
-
         csz_ = 0;
 
+        len_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000002);
         crc_ = com.google.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000004);
         ver_ = java.util.Collections.emptyList();
@@ -2284,8 +2341,12 @@ public final class protoPacket {
         packet.protoPacket.crcInfo result = new packet.protoPacket.crcInfo(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
-        result.num_ = num_;
         result.csz_ = csz_;
+        if (((bitField0_ & 0x00000002) == 0x00000002)) {
+          len_ = java.util.Collections.unmodifiableList(len_);
+          bitField0_ = (bitField0_ & ~0x00000002);
+        }
+        result.len_ = len_;
         if (((bitField0_ & 0x00000004) == 0x00000004)) {
           crc_ = crc_.getUnmodifiableView();
           bitField0_ = (bitField0_ & ~0x00000004);
@@ -2338,11 +2399,18 @@ public final class protoPacket {
 
       public Builder mergeFrom(packet.protoPacket.crcInfo other) {
         if (other == packet.protoPacket.crcInfo.getDefaultInstance()) return this;
-        if (other.getNum() != 0) {
-          setNum(other.getNum());
-        }
         if (other.getCsz() != 0) {
           setCsz(other.getCsz());
+        }
+        if (!other.len_.isEmpty()) {
+          if (len_.isEmpty()) {
+            len_ = other.len_;
+            bitField0_ = (bitField0_ & ~0x00000002);
+          } else {
+            ensureLenIsMutable();
+            len_.addAll(other.len_);
+          }
+          onChanged();
         }
         if (!other.crc_.isEmpty()) {
           if (crc_.isEmpty()) {
@@ -2392,41 +2460,15 @@ public final class protoPacket {
       }
       private int bitField0_;
 
-      private int num_ ;
-      /**
-       * <code>int32 num = 1;</code>
-       */
-      public int getNum() {
-        return num_;
-      }
-      /**
-       * <code>int32 num = 1;</code>
-       */
-      public Builder setNum(int value) {
-        
-        num_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>int32 num = 1;</code>
-       */
-      public Builder clearNum() {
-        
-        num_ = 0;
-        onChanged();
-        return this;
-      }
-
       private int csz_ ;
       /**
-       * <code>int32 csz = 2;</code>
+       * <code>int32 csz = 1;</code>
        */
       public int getCsz() {
         return csz_;
       }
       /**
-       * <code>int32 csz = 2;</code>
+       * <code>int32 csz = 1;</code>
        */
       public Builder setCsz(int value) {
         
@@ -2435,11 +2477,77 @@ public final class protoPacket {
         return this;
       }
       /**
-       * <code>int32 csz = 2;</code>
+       * <code>int32 csz = 1;</code>
        */
       public Builder clearCsz() {
         
         csz_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private java.util.List<java.lang.Long> len_ = java.util.Collections.emptyList();
+      private void ensureLenIsMutable() {
+        if (!((bitField0_ & 0x00000002) == 0x00000002)) {
+          len_ = new java.util.ArrayList<java.lang.Long>(len_);
+          bitField0_ |= 0x00000002;
+         }
+      }
+      /**
+       * <code>repeated int64 len = 2;</code>
+       */
+      public java.util.List<java.lang.Long>
+          getLenList() {
+        return java.util.Collections.unmodifiableList(len_);
+      }
+      /**
+       * <code>repeated int64 len = 2;</code>
+       */
+      public int getLenCount() {
+        return len_.size();
+      }
+      /**
+       * <code>repeated int64 len = 2;</code>
+       */
+      public long getLen(int index) {
+        return len_.get(index);
+      }
+      /**
+       * <code>repeated int64 len = 2;</code>
+       */
+      public Builder setLen(
+          int index, long value) {
+        ensureLenIsMutable();
+        len_.set(index, value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated int64 len = 2;</code>
+       */
+      public Builder addLen(long value) {
+        ensureLenIsMutable();
+        len_.add(value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated int64 len = 2;</code>
+       */
+      public Builder addAllLen(
+          java.lang.Iterable<? extends java.lang.Long> values) {
+        ensureLenIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, len_);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated int64 len = 2;</code>
+       */
+      public Builder clearLen() {
+        len_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000002);
         onChanged();
         return this;
       }
@@ -3935,8 +4043,8 @@ public final class protoPacket {
       "\n\014packet.proto\022\006packet\"-\n\004info\022\013\n\003nam\030\001 " +
       "\001(\t\022\013\n\003len\030\002 \001(\003\022\013\n\003ver\030\003 \001(\003\" \n\004resp\022\013\n" +
       "\003res\030\001 \001(\t\022\013\n\003ind\030\002 \001(\021\" \n\004data\022\013\n\003num\030\001" +
-      " \001(\005\022\013\n\003dat\030\002 \001(\014\"=\n\007crcInfo\022\013\n\003num\030\001 \001(" +
-      "\005\022\013\n\003csz\030\002 \001(\005\022\013\n\003crc\030\003 \003(\t\022\013\n\003ver\030\004 \003(\003" +
+      " \001(\005\022\013\n\003dat\030\002 \001(\014\"=\n\007crcInfo\022\013\n\003csz\030\001 \001(" +
+      "\005\022\013\n\003len\030\002 \003(\003\022\013\n\003crc\030\003 \003(\t\022\013\n\003ver\030\004 \003(\003" +
       "\"\"\n\006crcReq\022\013\n\003crc\030\001 \001(\t\022\013\n\003ver\030\002 \001(\003\"1\n\010" +
       "chunkReq\022\013\n\003ind\030\001 \001(\021\022\013\n\003crc\030\002 \001(\003\022\013\n\003na" +
       "m\030\003 \001(\tB\025\n\006packetB\013protoPacketb\006proto3"
@@ -3976,7 +4084,7 @@ public final class protoPacket {
     internal_static_packet_crcInfo_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_packet_crcInfo_descriptor,
-        new java.lang.String[] { "Num", "Csz", "Crc", "Ver", });
+        new java.lang.String[] { "Csz", "Len", "Crc", "Ver", });
     internal_static_packet_crcReq_descriptor =
       getDescriptor().getMessageTypes().get(4);
     internal_static_packet_crcReq_fieldAccessorTable = new
