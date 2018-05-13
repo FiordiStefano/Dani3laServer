@@ -22,8 +22,8 @@ message data {
 }
 
 message crcInfo {
-	int32 num = 1;
-	int32 csz = 2;
+	int32 csz = 1;
+	repeated int64 len = 2;
 	repeated string crc = 3;
 	repeated int64 ver = 4;
 }
