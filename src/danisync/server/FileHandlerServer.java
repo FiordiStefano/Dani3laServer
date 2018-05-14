@@ -235,6 +235,11 @@ public class FileHandlerServer {
      */
     protected void setChunkToRecv(int ChunkLength) {
         ChunkToRecv = new byte[ChunkLength];
+        if (ChunkLength % this.PacketLength == 0) {
+            nChunkPackets = ChunkLength / PacketLength;
+        } else {
+            nChunkPackets = ChunkLength / PacketLength + 1;
+        }
     }
     
     protected resp getChunkInfoRespPacket() {
@@ -259,7 +264,7 @@ public class FileHandlerServer {
 
         if (packet.getNum() == packetIndex) {
             byte[] bPacket = packet.getDat().toByteArray();
-            for (int i = 0; i < PacketLength; i++) {
+            for (int i = 0; i < bPacket.length; i++) {
                 ChunkToRecv[packetIndex * PacketLength + i] = bPacket[i];
             }
 
