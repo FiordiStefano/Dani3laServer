@@ -1825,6 +1825,19 @@ public final class protoPacket {
      * <code>repeated int64 ver = 4;</code>
      */
     long getVer(int index);
+
+    /**
+     * <code>repeated int64 cln = 5;</code>
+     */
+    java.util.List<java.lang.Long> getClnList();
+    /**
+     * <code>repeated int64 cln = 5;</code>
+     */
+    int getClnCount();
+    /**
+     * <code>repeated int64 cln = 5;</code>
+     */
+    long getCln(int index);
   }
   /**
    * Protobuf type {@code packet.crcInfo}
@@ -1843,6 +1856,7 @@ public final class protoPacket {
       len_ = java.util.Collections.emptyList();
       crc_ = com.google.protobuf.LazyStringArrayList.EMPTY;
       ver_ = java.util.Collections.emptyList();
+      cln_ = java.util.Collections.emptyList();
     }
 
     @java.lang.Override
@@ -1932,6 +1946,27 @@ public final class protoPacket {
               input.popLimit(limit);
               break;
             }
+            case 40: {
+              if (!((mutable_bitField0_ & 0x00000010) == 0x00000010)) {
+                cln_ = new java.util.ArrayList<java.lang.Long>();
+                mutable_bitField0_ |= 0x00000010;
+              }
+              cln_.add(input.readInt64());
+              break;
+            }
+            case 42: {
+              int length = input.readRawVarint32();
+              int limit = input.pushLimit(length);
+              if (!((mutable_bitField0_ & 0x00000010) == 0x00000010) && input.getBytesUntilLimit() > 0) {
+                cln_ = new java.util.ArrayList<java.lang.Long>();
+                mutable_bitField0_ |= 0x00000010;
+              }
+              while (input.getBytesUntilLimit() > 0) {
+                cln_.add(input.readInt64());
+              }
+              input.popLimit(limit);
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -1948,6 +1983,9 @@ public final class protoPacket {
         }
         if (((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
           ver_ = java.util.Collections.unmodifiableList(ver_);
+        }
+        if (((mutable_bitField0_ & 0x00000010) == 0x00000010)) {
+          cln_ = java.util.Collections.unmodifiableList(cln_);
         }
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
@@ -2050,6 +2088,29 @@ public final class protoPacket {
     }
     private int verMemoizedSerializedSize = -1;
 
+    public static final int CLN_FIELD_NUMBER = 5;
+    private java.util.List<java.lang.Long> cln_;
+    /**
+     * <code>repeated int64 cln = 5;</code>
+     */
+    public java.util.List<java.lang.Long>
+        getClnList() {
+      return cln_;
+    }
+    /**
+     * <code>repeated int64 cln = 5;</code>
+     */
+    public int getClnCount() {
+      return cln_.size();
+    }
+    /**
+     * <code>repeated int64 cln = 5;</code>
+     */
+    public long getCln(int index) {
+      return cln_.get(index);
+    }
+    private int clnMemoizedSerializedSize = -1;
+
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
@@ -2082,6 +2143,13 @@ public final class protoPacket {
       }
       for (int i = 0; i < ver_.size(); i++) {
         output.writeInt64NoTag(ver_.get(i));
+      }
+      if (getClnList().size() > 0) {
+        output.writeUInt32NoTag(42);
+        output.writeUInt32NoTag(clnMemoizedSerializedSize);
+      }
+      for (int i = 0; i < cln_.size(); i++) {
+        output.writeInt64NoTag(cln_.get(i));
       }
       unknownFields.writeTo(output);
     }
@@ -2131,6 +2199,20 @@ public final class protoPacket {
         }
         verMemoizedSerializedSize = dataSize;
       }
+      {
+        int dataSize = 0;
+        for (int i = 0; i < cln_.size(); i++) {
+          dataSize += com.google.protobuf.CodedOutputStream
+            .computeInt64SizeNoTag(cln_.get(i));
+        }
+        size += dataSize;
+        if (!getClnList().isEmpty()) {
+          size += 1;
+          size += com.google.protobuf.CodedOutputStream
+              .computeInt32SizeNoTag(dataSize);
+        }
+        clnMemoizedSerializedSize = dataSize;
+      }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
       return size;
@@ -2155,6 +2237,8 @@ public final class protoPacket {
           .equals(other.getCrcList());
       result = result && getVerList()
           .equals(other.getVerList());
+      result = result && getClnList()
+          .equals(other.getClnList());
       result = result && unknownFields.equals(other.unknownFields);
       return result;
     }
@@ -2179,6 +2263,10 @@ public final class protoPacket {
       if (getVerCount() > 0) {
         hash = (37 * hash) + VER_FIELD_NUMBER;
         hash = (53 * hash) + getVerList().hashCode();
+      }
+      if (getClnCount() > 0) {
+        hash = (37 * hash) + CLN_FIELD_NUMBER;
+        hash = (53 * hash) + getClnList().hashCode();
       }
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
@@ -2317,6 +2405,8 @@ public final class protoPacket {
         bitField0_ = (bitField0_ & ~0x00000004);
         ver_ = java.util.Collections.emptyList();
         bitField0_ = (bitField0_ & ~0x00000008);
+        cln_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000010);
         return this;
       }
 
@@ -2357,6 +2447,11 @@ public final class protoPacket {
           bitField0_ = (bitField0_ & ~0x00000008);
         }
         result.ver_ = ver_;
+        if (((bitField0_ & 0x00000010) == 0x00000010)) {
+          cln_ = java.util.Collections.unmodifiableList(cln_);
+          bitField0_ = (bitField0_ & ~0x00000010);
+        }
+        result.cln_ = cln_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -2429,6 +2524,16 @@ public final class protoPacket {
           } else {
             ensureVerIsMutable();
             ver_.addAll(other.ver_);
+          }
+          onChanged();
+        }
+        if (!other.cln_.isEmpty()) {
+          if (cln_.isEmpty()) {
+            cln_ = other.cln_;
+            bitField0_ = (bitField0_ & ~0x00000010);
+          } else {
+            ensureClnIsMutable();
+            cln_.addAll(other.cln_);
           }
           onChanged();
         }
@@ -2708,6 +2813,72 @@ public final class protoPacket {
       public Builder clearVer() {
         ver_ = java.util.Collections.emptyList();
         bitField0_ = (bitField0_ & ~0x00000008);
+        onChanged();
+        return this;
+      }
+
+      private java.util.List<java.lang.Long> cln_ = java.util.Collections.emptyList();
+      private void ensureClnIsMutable() {
+        if (!((bitField0_ & 0x00000010) == 0x00000010)) {
+          cln_ = new java.util.ArrayList<java.lang.Long>(cln_);
+          bitField0_ |= 0x00000010;
+         }
+      }
+      /**
+       * <code>repeated int64 cln = 5;</code>
+       */
+      public java.util.List<java.lang.Long>
+          getClnList() {
+        return java.util.Collections.unmodifiableList(cln_);
+      }
+      /**
+       * <code>repeated int64 cln = 5;</code>
+       */
+      public int getClnCount() {
+        return cln_.size();
+      }
+      /**
+       * <code>repeated int64 cln = 5;</code>
+       */
+      public long getCln(int index) {
+        return cln_.get(index);
+      }
+      /**
+       * <code>repeated int64 cln = 5;</code>
+       */
+      public Builder setCln(
+          int index, long value) {
+        ensureClnIsMutable();
+        cln_.set(index, value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated int64 cln = 5;</code>
+       */
+      public Builder addCln(long value) {
+        ensureClnIsMutable();
+        cln_.add(value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated int64 cln = 5;</code>
+       */
+      public Builder addAllCln(
+          java.lang.Iterable<? extends java.lang.Long> values) {
+        ensureClnIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, cln_);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated int64 cln = 5;</code>
+       */
+      public Builder clearCln() {
+        cln_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000010);
         onChanged();
         return this;
       }
@@ -4043,11 +4214,12 @@ public final class protoPacket {
       "\n\014packet.proto\022\006packet\"-\n\004info\022\013\n\003nam\030\001 " +
       "\001(\t\022\013\n\003len\030\002 \001(\003\022\013\n\003ver\030\003 \001(\003\" \n\004resp\022\013\n" +
       "\003res\030\001 \001(\t\022\013\n\003ind\030\002 \001(\021\" \n\004data\022\013\n\003num\030\001" +
-      " \001(\005\022\013\n\003dat\030\002 \001(\014\"=\n\007crcInfo\022\013\n\003csz\030\001 \001(" +
+      " \001(\005\022\013\n\003dat\030\002 \001(\014\"J\n\007crcInfo\022\013\n\003csz\030\001 \001(" +
       "\005\022\013\n\003len\030\002 \003(\003\022\013\n\003crc\030\003 \003(\t\022\013\n\003ver\030\004 \003(\003" +
-      "\"\"\n\006crcReq\022\013\n\003crc\030\001 \001(\t\022\013\n\003ver\030\002 \001(\003\"1\n\010" +
-      "chunkReq\022\013\n\003ind\030\001 \001(\021\022\013\n\003crc\030\002 \001(\003\022\013\n\003na" +
-      "m\030\003 \001(\tB\025\n\006packetB\013protoPacketb\006proto3"
+      "\022\013\n\003cln\030\005 \003(\003\"\"\n\006crcReq\022\013\n\003crc\030\001 \001(\t\022\013\n\003" +
+      "ver\030\002 \001(\003\"1\n\010chunkReq\022\013\n\003ind\030\001 \001(\021\022\013\n\003cr" +
+      "c\030\002 \001(\003\022\013\n\003nam\030\003 \001(\tB\025\n\006packetB\013protoPac" +
+      "ketb\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -4084,7 +4256,7 @@ public final class protoPacket {
     internal_static_packet_crcInfo_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_packet_crcInfo_descriptor,
-        new java.lang.String[] { "Csz", "Len", "Crc", "Ver", });
+        new java.lang.String[] { "Csz", "Len", "Crc", "Ver", "Cln", });
     internal_static_packet_crcReq_descriptor =
       getDescriptor().getMessageTypes().get(4);
     internal_static_packet_crcReq_fieldAccessorTable = new

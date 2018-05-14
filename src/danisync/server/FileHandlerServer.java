@@ -118,13 +118,14 @@ public class FileHandlerServer {
      *
      * @param ServerFile il file da sincronizzare
      * @param FileLength la grandezza del file
+     * @param newCRCLength dimensione del nuovo file indice
      * @param ChunkSize la grandezza dei pezzi
      * @throws IOException se la creazione del canale non va a buon fine
      * @throws NumberFormatException se ci sono errori di lettura del file
      * indice
      * @throws MyExc se c'è un errore nella lettura della versione
      */
-    public FileHandlerServer(File ServerFile, long FileLength, int ChunkSize) throws IOException, NumberFormatException, MyExc {
+    public FileHandlerServer(File ServerFile, long FileLength, long newCRCLength, int ChunkSize) throws IOException, NumberFormatException, MyExc {
         this.ServerFile = ServerFile;
         this.ChunkSize = ChunkSize;
         this.newLength = FileLength;
@@ -160,25 +161,35 @@ public class FileHandlerServer {
         this.fcServerRead = new FileInputStream(this.ServerFile).getChannel();
         this.fcServerWrite = FileChannel.open(this.ServerFile.toPath(), StandardOpenOption.WRITE);
 
-        if (this.ServerFile.length() % 2 == 0) {
+        if (this.ServerFile.length() % this.ChunkSize == 0) {
             oldChunks = this.ServerFile.length() / this.ChunkSize;
         } else {
             oldChunks = this.ServerFile.length() / this.ChunkSize + 1;
         }
-
+        if (!new File("Indexes\\").exists()) {
+            new File("Indexes\\").mkdir();
+        }
         this.oldCRCIndex = new File("Indexes\\" + this.ServerFile.getName() + ".crc");
         if (this.oldCRCIndex.exists()) {
             readDigests();
         } else {
             aiaOld = new AIndexedArray(new long[0]);
         }
+        if (!new File("Temp\\").exists()) {
+            new File("Temp\\").mkdir();
+        }
         this.newCRCIndex = new File("Temp\\" + this.ServerFile.getName() + ".crc");
-        if (FileLength % 2 == 0) {
-            nCRCIndexPackets = FileLength / PacketLength;
+        if (newCRCLength % this.PacketLength == 0) {
+            nCRCIndexPackets = newCRCLength / this.PacketLength;
         } else {
-            nCRCIndexPackets = FileLength / PacketLength + 1;
+            nCRCIndexPackets = newCRCLength / this.PacketLength + 1;
         }
         this.newCRCIndex.createNewFile();
+        if (FileLength % this.ChunkSize == 0) {
+            newChunks = FileLength / this.ChunkSize;
+        } else {
+            newChunks = FileLength / this.ChunkSize + 1;
+        }
     }
 
     /**

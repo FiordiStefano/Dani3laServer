@@ -26,6 +26,7 @@ message crcInfo {
 	repeated int64 len = 2;
 	repeated string crc = 3;
 	repeated int64 ver = 4;
+	repeated int64 cln = 5;
 }
 
 message crcReq {

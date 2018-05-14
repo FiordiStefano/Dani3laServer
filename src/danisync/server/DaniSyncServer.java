@@ -34,6 +34,7 @@ public class DaniSyncServer {
     static int ChunkSize;
     static File Files[];
     static FileHandlerServer SyncFiles[];
+    static int RetryCount = 0;
 
     /**
      * Scrive la configurazione del server sul file sConfig.ini
@@ -78,7 +79,7 @@ public class DaniSyncServer {
         info infoChunkPacket = info.parseDelimitedFrom(socket.getInputStream());
         fhs.setChunkToRecv((int) infoChunkPacket.getLen());
         fhs.getChunkInfoRespPacket().writeDelimitedTo(socket.getOutputStream());
-        
+
         int i = 0, ErrorCount = 0;
         for (; i < fhs.nChunkPackets; i++) {
             data dataPacket = data.parseDelimitedFrom(socket.getInputStream());
@@ -106,9 +107,9 @@ public class DaniSyncServer {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws MyExc {
 
-        new Thread(new Runnable() {
+        Thread thCmd = new Thread(new Runnable() {
             @Override
             public void run() {
                 while (true) {
@@ -123,7 +124,8 @@ public class DaniSyncServer {
                     }
                 }
             }
-        }).start();
+        });
+        thCmd.start();
 
         try {
             if (!new File("sConfig.ini").exists()) {
@@ -136,9 +138,12 @@ public class DaniSyncServer {
                 try {
                     ss = new ServerSocket(6365);
                     socket = ss.accept();
+                    System.out.println("Connected to: " + socket.getRemoteSocketAddress());
 
                     while (true) {
+                        System.out.println("Waiting for synchronization...");
                         crcInfo CRCInfoPacket = crcInfo.parseDelimitedFrom(socket.getInputStream());
+                        System.out.println("Synchronization started...");
                         ChunkSize = CRCInfoPacket.getCsz();
                         SyncFiles = new FileHandlerServer[CRCInfoPacket.getCrcCount()];
                         try {
@@ -146,23 +151,24 @@ public class DaniSyncServer {
                                 int j = 0;
                                 for (; j < Files.length; j++) {
                                     if (CRCInfoPacket.getCrc(i).equals(Files[j].getName())) {
-                                        SyncFiles[i] = new FileHandlerServer(Files[j], CRCInfoPacket.getLen(i), ChunkSize);
+                                        SyncFiles[i] = new FileHandlerServer(Files[j], CRCInfoPacket.getLen(i), CRCInfoPacket.getCln(i), ChunkSize);
                                         break;
                                     }
                                 }
                                 if (j == Files.length) {
-                                    SyncFiles[i] = new FileHandlerServer(new File(syncDir.getPath() + CRCInfoPacket.getCrc(i)), CRCInfoPacket.getLen(i), ChunkSize);
+                                    SyncFiles[i] = new FileHandlerServer(new File(syncDir.getName() + "\\" + CRCInfoPacket.getCrc(i)), CRCInfoPacket.getLen(i), CRCInfoPacket.getCln(i), ChunkSize);
                                 }
                                 if (!SyncFiles[i].oldCRCIndex.exists() || SyncFiles[i].oldVersion != CRCInfoPacket.getVer(i)) {
-                                    SyncFiles[i].getNewCRCRequest(ChunkSize).writeDelimitedTo(socket.getOutputStream());
-
+                                    SyncFiles[i].getNewCRCRequest(CRCInfoPacket.getVer(i)).writeDelimitedTo(socket.getOutputStream());
+                                    System.out.println("Downloading " + SyncFiles[i].newCRCIndex.getName());
+                                    
                                     info newCRCInfoPacket = info.parseDelimitedFrom(socket.getInputStream());
+                                    System.out.println(newCRCInfoPacket.toString());
                                     if (newCRCInfoPacket.getVer() == CRCInfoPacket.getVer(i)) {
                                         SyncFiles[i].getCRCIndexInfoRespPacket().writeDelimitedTo(socket.getOutputStream());
                                         int k = 0, ErrorCount = 0;
                                         for (; k < SyncFiles[i].nCRCIndexPackets; k++) {
                                             data dataPacket = data.parseDelimitedFrom(socket.getInputStream());
-
                                             resp respPacket = SyncFiles[i].addCRCIndexPacket(dataPacket, k);
                                             respPacket.writeDelimitedTo(socket.getOutputStream());
                                             if (respPacket.getRes().equals("mrr")) {
@@ -170,6 +176,7 @@ public class DaniSyncServer {
                                             }
                                         }
                                         resp respEndPacket = resp.parseDelimitedFrom(socket.getInputStream());
+                                        System.out.println(respEndPacket.toString());
                                         if (respEndPacket.getRes().equals("not") && ErrorCount < 3) {
                                             i--;
                                             ErrorCount++;
@@ -185,13 +192,18 @@ public class DaniSyncServer {
                                 }
                             }
                             crcReq.newBuilder().setCrc("end").build().writeDelimitedTo(socket.getOutputStream());
-
+                            resp endResponse = resp.parseDelimitedFrom(socket.getInputStream());
+                            System.out.println(endResponse.toString());
+                            if (!endResponse.getRes().equals("ok")) {
+                                throw new MyExc("Server error");
+                            }
+                                    
                             for (FileHandlerServer fhs : SyncFiles) {
                                 fhs.compareIndexes();
 
                                 System.out.println("\nFile handling started...");
                                 // inizio delle operazioni di aggiornamento del vecchio file
-                                if (fhs.newChunks < fhs.oldChunks) {
+                                if (fhs.oldChunks < fhs.newChunks) {
                                     long[] newArray = new long[(int) fhs.newChunks];
                                     System.arraycopy(fhs.aiaOld.array, 0, newArray, 0, fhs.aiaOld.array.length);
                                     fhs.aiaOld.array = newArray;
@@ -221,9 +233,9 @@ public class DaniSyncServer {
                                         if (j == fhs.aiaOld.sIndexes.length) {
                                             //int len;
                                             //if ((len = fNew.read(buf, (long) i * ChunkSize)) != -1) {
-                                                ChunkTransfer(fhs, i);
-                                                //System.out.println("Copied chunk " + j + " from new version to " + i);
-                                                fhs.aiaOld.array[i] = fhs.iaNew.array[i];
+                                            ChunkTransfer(fhs, i);
+                                            //System.out.println("Copied chunk " + j + " from new version to " + i);
+                                            fhs.aiaOld.array[i] = fhs.iaNew.array[i];
                                             //}
                                         }
                                     }
@@ -297,11 +309,11 @@ public class DaniSyncServer {
                                                 if (j == fhs.aiaOld.sIndexes.length) {
                                                     //int len;
                                                     //if ((len = fNew.read(buf, (long) i * ChunkSize)) != -1) {
-                                                        ChunkTransfer(fhs, i);
-                                                        //System.out.println("Copied chunk " + i + " from new version");
-                                                        fhs.aiaOld.array[i] = fhs.iaNew.array[i];
-                                                        fhs.aiaOld.sIndexes[i][0] = i;
-                                                        updated++;
+                                                    ChunkTransfer(fhs, i);
+                                                    //System.out.println("Copied chunk " + i + " from new version");
+                                                    fhs.aiaOld.array[i] = fhs.iaNew.array[i];
+                                                    fhs.aiaOld.sIndexes[i][0] = i;
+                                                    updated++;
                                                     //}
                                                 }
                                             }
@@ -338,17 +350,32 @@ public class DaniSyncServer {
                                     long[] newArray = new long[(int) fhs.newChunks];
                                     System.arraycopy(fhs.aiaOld.array, 0, newArray, 0, (int) fhs.newChunks);
                                 }
-                                
+
                                 fhs.writeDigests();
                                 fhs.newCRCIndex.delete();
                             }
                             chunkReq.newBuilder().setInd(-1).build().writeDelimitedTo(socket.getOutputStream());
-                        } catch (IOException | NumberFormatException | MyExc ex) {
+                        } catch (IOException | NumberFormatException /*| MyExc*/ ex) {
                             System.out.println("Error: " + ex.getMessage());
+                            if (RetryCount < 3) {
+                                RetryCount++;
+                            } else {
+                                break;
+                            }
                         }
                     }
+                    
+                    socket.close();
+                    ss.close();
                 } catch (IOException ex) {
                     System.out.println("Error: " + ex.getMessage());
+                    socket.close();
+                    ss.close();
+                    if (RetryCount < 3) {
+                        RetryCount++;
+                    } else {
+                        break;
+                    }
                 }
             }
         } catch (IOException ex) {
