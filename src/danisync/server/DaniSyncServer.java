@@ -132,7 +132,6 @@ public class DaniSyncServer {
                 writeDefaultConfig();
             }
             readConfig();
-            Files = syncDir.listFiles();
 
             while (true) {
                 try {
@@ -140,235 +139,236 @@ public class DaniSyncServer {
                     socket = ss.accept();
                     System.out.println("Connected to: " + socket.getRemoteSocketAddress());
 
-                    while (true) {
-                        System.out.println("Waiting for synchronization...");
-                        crcInfo CRCInfoPacket = crcInfo.parseDelimitedFrom(socket.getInputStream());
-                        System.out.println("Synchronization started...");
-                        ChunkSize = CRCInfoPacket.getCsz();
-                        SyncFiles = new FileHandlerServer[CRCInfoPacket.getCrcCount()];
-                        try {
-                            for (int i = 0; i < CRCInfoPacket.getCrcCount(); i++) {
-                                int j = 0;
-                                for (; j < Files.length; j++) {
-                                    if (CRCInfoPacket.getCrc(i).equals(Files[j].getName())) {
-                                        SyncFiles[i] = new FileHandlerServer(Files[j], CRCInfoPacket.getLen(i), CRCInfoPacket.getCln(i), ChunkSize);
-                                        break;
-                                    }
-                                }
-                                if (j == Files.length) {
-                                    SyncFiles[i] = new FileHandlerServer(new File(syncDir.getName() + "\\" + CRCInfoPacket.getCrc(i)), CRCInfoPacket.getLen(i), CRCInfoPacket.getCln(i), ChunkSize);
-                                }
-                                if (!SyncFiles[i].oldCRCIndex.exists() || SyncFiles[i].oldVersion != CRCInfoPacket.getVer(i)) {
-                                    SyncFiles[i].getNewCRCRequest(CRCInfoPacket.getVer(i)).writeDelimitedTo(socket.getOutputStream());
-                                    System.out.println("Downloading " + SyncFiles[i].newCRCIndex.getName());
-
-                                    info newCRCInfoPacket = info.parseDelimitedFrom(socket.getInputStream());
-                                    System.out.println(newCRCInfoPacket.toString());
-                                    if (newCRCInfoPacket.getVer() == CRCInfoPacket.getVer(i)) {
-                                        SyncFiles[i].getCRCIndexInfoRespPacket().writeDelimitedTo(socket.getOutputStream());
-                                        int k = 0, ErrorCount = 0;
-                                        for (; k < SyncFiles[i].nCRCIndexPackets; k++) {
-                                            data dataPacket = data.parseDelimitedFrom(socket.getInputStream());
-                                            resp respPacket = SyncFiles[i].addCRCIndexPacket(dataPacket, k);
-                                            respPacket.writeDelimitedTo(socket.getOutputStream());
-                                            if (respPacket.getRes().equals("mrr")) {
-                                                break;
-                                            }
-                                        }
-                                        resp respEndPacket = resp.parseDelimitedFrom(socket.getInputStream());
-                                        System.out.println(respEndPacket.toString());
-                                        if (respEndPacket.getRes().equals("not") && ErrorCount < 3) {
-                                            i--;
-                                            ErrorCount++;
-                                        } else if (respEndPacket.getRes().equals("not") && ErrorCount >= 3) {
-                                            throw new MyExc("Errore di trasferimento");
-                                        } else if (respEndPacket.getRes().equals("ok")) {
-                                            ErrorCount = 0;
-                                            if (k == SyncFiles[i].nCRCIndexPackets) {
-                                                SyncFiles[i].readNewDigests();
-                                            }
-                                        }
-                                    }
-                                } else if (SyncFiles[i].oldCRCIndex.exists() && SyncFiles[i].oldVersion == CRCInfoPacket.getVer(i)) {
-                                    SyncFiles[i].newVersion = CRCInfoPacket.getVer(i);
+                    //while (true) {
+                    System.out.println("Waiting for synchronization...");
+                    crcInfo CRCInfoPacket = crcInfo.parseDelimitedFrom(socket.getInputStream());
+                    System.out.println("Synchronization started...");
+                    Files = syncDir.listFiles();
+                    ChunkSize = CRCInfoPacket.getCsz();
+                    SyncFiles = new FileHandlerServer[CRCInfoPacket.getCrcCount()];
+                    try {
+                        for (int i = 0; i < CRCInfoPacket.getCrcCount(); i++) {
+                            int j = 0;
+                            for (; j < Files.length; j++) {
+                                if (CRCInfoPacket.getCrc(i).equals(Files[j].getName())) {
+                                    SyncFiles[i] = new FileHandlerServer(Files[j], CRCInfoPacket.getLen(i), CRCInfoPacket.getCln(i), ChunkSize);
+                                    break;
                                 }
                             }
-                            crcReq.newBuilder().setCrc("end").build().writeDelimitedTo(socket.getOutputStream());
-                            resp endResponse = resp.parseDelimitedFrom(socket.getInputStream());
-                            System.out.println(endResponse.toString());
-                            if (!endResponse.getRes().equals("ok")) {
-                                throw new MyExc("Server error");
+                            if (j == Files.length) {
+                                SyncFiles[i] = new FileHandlerServer(new File(syncDir.getName() + "\\" + CRCInfoPacket.getCrc(i)), CRCInfoPacket.getLen(i), CRCInfoPacket.getCln(i), ChunkSize);
                             }
+                            if (!SyncFiles[i].oldCRCIndex.exists() || SyncFiles[i].oldVersion != CRCInfoPacket.getVer(i)) {
+                                SyncFiles[i].getNewCRCRequest(CRCInfoPacket.getVer(i)).writeDelimitedTo(socket.getOutputStream());
+                                System.out.println("Downloading " + SyncFiles[i].newCRCIndex.getName());
 
-                            for (FileHandlerServer fhs : SyncFiles) {
-                                if (fhs.oldVersion != fhs.newVersion) {
-                                    fhs.compareIndexes();
+                                info newCRCInfoPacket = info.parseDelimitedFrom(socket.getInputStream());
+                                System.out.println(newCRCInfoPacket.toString());
+                                if (newCRCInfoPacket.getVer() == CRCInfoPacket.getVer(i)) {
+                                    SyncFiles[i].getCRCIndexInfoRespPacket().writeDelimitedTo(socket.getOutputStream());
+                                    int k = 0, ErrorCount = 0;
+                                    for (; k < SyncFiles[i].nCRCIndexPackets; k++) {
+                                        data dataPacket = data.parseDelimitedFrom(socket.getInputStream());
+                                        resp respPacket = SyncFiles[i].addCRCIndexPacket(dataPacket, k);
+                                        respPacket.writeDelimitedTo(socket.getOutputStream());
+                                        if (respPacket.getRes().equals("mrr")) {
+                                            break;
+                                        }
+                                    }
+                                    resp respEndPacket = resp.parseDelimitedFrom(socket.getInputStream());
+                                    System.out.println(respEndPacket.toString());
+                                    if (respEndPacket.getRes().equals("not") && ErrorCount < 3) {
+                                        i--;
+                                        ErrorCount++;
+                                    } else if (respEndPacket.getRes().equals("not") && ErrorCount >= 3) {
+                                        throw new MyExc("Errore di trasferimento");
+                                    } else if (respEndPacket.getRes().equals("ok")) {
+                                        ErrorCount = 0;
+                                        if (k == SyncFiles[i].nCRCIndexPackets) {
+                                            SyncFiles[i].readNewDigests();
+                                        }
+                                    }
+                                }
+                            } else if (SyncFiles[i].oldCRCIndex.exists() && SyncFiles[i].oldVersion == CRCInfoPacket.getVer(i)) {
+                                SyncFiles[i].newVersion = CRCInfoPacket.getVer(i);
+                            }
+                        }
+                        crcReq.newBuilder().setCrc("end").build().writeDelimitedTo(socket.getOutputStream());
+                        resp endResponse = resp.parseDelimitedFrom(socket.getInputStream());
+                        System.out.println(endResponse.toString());
+                        if (!endResponse.getRes().equals("ok")) {
+                            throw new MyExc("Server error");
+                        }
 
-                                    System.out.println("\nFile handling started...");
-                                    // inizio delle operazioni di aggiornamento del vecchio file
-                                    if (fhs.oldChunks < fhs.newChunks) {
-                                        long[] newArray = new long[(int) fhs.newChunks];
-                                        System.arraycopy(fhs.aiaOld.array, 0, newArray, 0, fhs.aiaOld.array.length);
-                                        fhs.aiaOld.array = newArray;
-                                        System.out.println("\nNew version is bigger");
-                                        for (int i = fhs.aiaOld.sIndexes.length; i < fhs.aiaOld.array.length; i++) {
-                                            int j;
-                                            ByteBuffer buf = ByteBuffer.allocate(ChunkSize);
-                                            for (j = 0; j < fhs.aiaOld.sIndexes.length; j++) {
-                                                int index = fhs.aiaOld.searchColumnIndex(j, i);
-                                                if (index != -1) {
-                                                    int len;
-                                                    if ((len = fhs.fcServerRead.read(buf, (long) j * ChunkSize)) != -1) {
-                                                        fhs.ChunkToRecv = fhs.getByteArray(buf);
-                                                        fhs.insertChunk(i);
-                                                        //System.out.println("Copied chunk " + j + " to " + i);
-                                                        fhs.aiaOld.array[i] = fhs.aiaOld.array[j];
-                                                        if (fhs.aiaOld.sIndexes[j].length == 1) {
-                                                            fhs.aiaOld.sIndexes[j][0] = -1;
+                        for (FileHandlerServer fhs : SyncFiles) {
+                            if (fhs.oldVersion != fhs.newVersion) {
+                                fhs.compareIndexes();
+
+                                System.out.println("\nFile handling started...");
+                                // inizio delle operazioni di aggiornamento del vecchio file
+                                if (fhs.oldChunks < fhs.newChunks) {
+                                    long[] newArray = new long[(int) fhs.newChunks];
+                                    System.arraycopy(fhs.aiaOld.array, 0, newArray, 0, fhs.aiaOld.array.length);
+                                    fhs.aiaOld.array = newArray;
+                                    System.out.println("\nNew version is bigger");
+                                    for (int i = fhs.aiaOld.sIndexes.length; i < fhs.aiaOld.array.length; i++) {
+                                        int j;
+                                        ByteBuffer buf = ByteBuffer.allocate(ChunkSize);
+                                        for (j = 0; j < fhs.aiaOld.sIndexes.length; j++) {
+                                            int index = fhs.aiaOld.searchColumnIndex(j, i);
+                                            if (index != -1) {
+                                                int len;
+                                                if ((len = fhs.fcServerRead.read(buf, (long) j * ChunkSize)) != -1) {
+                                                    fhs.ChunkToRecv = fhs.getByteArray(buf);
+                                                    fhs.insertChunk(i);
+                                                    //System.out.println("Copied chunk " + j + " to " + i);
+                                                    fhs.aiaOld.array[i] = fhs.aiaOld.array[j];
+                                                    if (fhs.aiaOld.sIndexes[j].length == 1) {
+                                                        fhs.aiaOld.sIndexes[j][0] = -1;
+                                                    } else {
+                                                        fhs.aiaOld.delIndex(j, index);
+                                                    }
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        if (j == fhs.aiaOld.sIndexes.length) {
+                                            System.out.println("Downloading chunk n." + i + "...");
+                                            ChunkTransfer(fhs, i);
+                                            System.out.println("Finished");
+                                            //System.out.println("Copied chunk " + j + " from new version to " + i);
+                                            fhs.aiaOld.array[i] = fhs.iaNew.array[i];
+                                        }
+                                    }
+                                }
+                                long dBuf = 0;
+                                int[] dsIndexes = null;
+                                byte[] dChunk = null;
+                                int iterations;
+                                if (fhs.newChunks >= fhs.oldChunks) {
+                                    iterations = fhs.aiaOld.sIndexes.length;
+                                } else {
+                                    iterations = (int) fhs.newChunks;
+                                }
+                                System.out.println("Local file processing started...");
+                                while (true) {
+                                    int updated = 0, notUp = 0;
+                                    ByteBuffer buf = ByteBuffer.allocate(ChunkSize);
+                                    for (int i = 0; i < iterations; i++) {
+                                        if (fhs.aiaOld.sIndexes[i][0] == -1) {
+                                            //System.out.println("Processing chunk " + i);
+                                            int k = -1;
+                                            if (dsIndexes != null && dChunk != null) {
+                                                for (k = 0; k < dsIndexes.length; k++) {
+                                                    if (dsIndexes[k] == i) {
+                                                        fhs.fcServerWrite.write(ByteBuffer.wrap(dChunk), (long) i * ChunkSize);
+                                                        //System.out.println("Copied buffer to " + i);
+                                                        fhs.aiaOld.array[i] = dBuf;
+                                                        fhs.aiaOld.sIndexes[i][0] = i;
+                                                        if (dsIndexes.length > 1) {
+                                                            for (int z = k; z < dsIndexes.length - 1; z++) {
+                                                                dsIndexes[z] = dsIndexes[z + 1];
+                                                            }
                                                         } else {
-                                                            fhs.aiaOld.delIndex(j, index);
+                                                            dsIndexes = null;
+                                                            dBuf = 0;
+                                                            dChunk = null;
                                                         }
+                                                        updated++;
                                                         break;
                                                     }
                                                 }
+
+                                                if (dsIndexes != null && k == dsIndexes.length) {
+                                                    k = -1;
+                                                }
                                             }
-                                            if (j == fhs.aiaOld.sIndexes.length) {
-                                                System.out.println("Downloading chunk n." + i + "...");
-                                                ChunkTransfer(fhs, i);
-                                                System.out.println("Finished");
-                                                //System.out.println("Copied chunk " + j + " from new version to " + i);
-                                                fhs.aiaOld.array[i] = fhs.iaNew.array[i];
-                                            }
-                                        }
-                                    }
-                                    long dBuf = 0;
-                                    int[] dsIndexes = null;
-                                    byte[] dChunk = null;
-                                    int iterations;
-                                    if (fhs.newChunks >= fhs.oldChunks) {
-                                        iterations = fhs.aiaOld.sIndexes.length;
-                                    } else {
-                                        iterations = (int) fhs.newChunks;
-                                    }
-                                    System.out.println("Local file processing started...");
-                                    while (true) {
-                                        int updated = 0, notUp = 0;
-                                        ByteBuffer buf = ByteBuffer.allocate(ChunkSize);
-                                        for (int i = 0; i < iterations; i++) {
-                                            if (fhs.aiaOld.sIndexes[i][0] == -1) {
-                                                //System.out.println("Processing chunk " + i);
-                                                int k = -1;
-                                                if (dsIndexes != null && dChunk != null) {
-                                                    for (k = 0; k < dsIndexes.length; k++) {
-                                                        if (dsIndexes[k] == i) {
-                                                            fhs.fcServerWrite.write(ByteBuffer.wrap(dChunk), (long) i * ChunkSize);
-                                                            //System.out.println("Copied buffer to " + i);
-                                                            fhs.aiaOld.array[i] = dBuf;
+                                            if (k == -1) {
+                                                int j = 0;
+                                                for (; j < fhs.aiaOld.sIndexes.length; j++) {
+                                                    int index = fhs.aiaOld.searchColumnIndex(j, i);
+                                                    if (index != -1) {
+                                                        int len;
+                                                        if ((len = fhs.fcServerRead.read(buf, (long) j * ChunkSize)) != -1) {
+                                                            fhs.ChunkToRecv = fhs.getByteArray(buf);
+                                                            //fOutOld.write(ByteBuffer.wrap(chunk), (long) i * ChunkSize);
+                                                            fhs.insertChunk(i);
+                                                            //System.out.println("Copied chunk " + j + " to " + i);
+                                                            fhs.aiaOld.array[i] = fhs.aiaOld.array[j];
                                                             fhs.aiaOld.sIndexes[i][0] = i;
-                                                            if (dsIndexes.length > 1) {
-                                                                for (int z = k; z < dsIndexes.length - 1; z++) {
-                                                                    dsIndexes[z] = dsIndexes[z + 1];
-                                                                }
+                                                            if (fhs.aiaOld.sIndexes[j].length == 1) {
+                                                                fhs.aiaOld.sIndexes[j][0] = -1;
+                                                                i = j - 1;
                                                             } else {
-                                                                dsIndexes = null;
-                                                                dBuf = 0;
-                                                                dChunk = null;
+                                                                fhs.aiaOld.delIndex(j, index);
                                                             }
                                                             updated++;
                                                             break;
                                                         }
                                                     }
-
-                                                    if (dsIndexes != null && k == dsIndexes.length) {
-                                                        k = -1;
-                                                    }
                                                 }
-                                                if (k == -1) {
-                                                    int j = 0;
-                                                    for (; j < fhs.aiaOld.sIndexes.length; j++) {
-                                                        int index = fhs.aiaOld.searchColumnIndex(j, i);
-                                                        if (index != -1) {
-                                                            int len;
-                                                            if ((len = fhs.fcServerRead.read(buf, (long) j * ChunkSize)) != -1) {
-                                                                fhs.ChunkToRecv = fhs.getByteArray(buf);
-                                                                //fOutOld.write(ByteBuffer.wrap(chunk), (long) i * ChunkSize);
-                                                                fhs.insertChunk(i);
-                                                                //System.out.println("Copied chunk " + j + " to " + i);
-                                                                fhs.aiaOld.array[i] = fhs.aiaOld.array[j];
-                                                                fhs.aiaOld.sIndexes[i][0] = i;
-                                                                if (fhs.aiaOld.sIndexes[j].length == 1) {
-                                                                    fhs.aiaOld.sIndexes[j][0] = -1;
-                                                                    i = j - 1;
-                                                                } else {
-                                                                    fhs.aiaOld.delIndex(j, index);
-                                                                }
-                                                                updated++;
-                                                                break;
-                                                            }
-                                                        }
-                                                    }
-                                                    if (j == fhs.aiaOld.sIndexes.length) {
-                                                        //int len;
-                                                        //if ((len = fNew.read(buf, (long) i * ChunkSize)) != -1) {
-                                                        ChunkTransfer(fhs, i);
-                                                        //System.out.println("Copied chunk " + i + " from new version");
-                                                        fhs.aiaOld.array[i] = fhs.iaNew.array[i];
-                                                        fhs.aiaOld.sIndexes[i][0] = i;
-                                                        updated++;
-                                                        //}
-                                                    }
-                                                }
-                                            } else {
-                                                if (fhs.aiaOld.searchColumnIndex(i, i) != -1) {
+                                                if (j == fhs.aiaOld.sIndexes.length) {
+                                                    //int len;
+                                                    //if ((len = fNew.read(buf, (long) i * ChunkSize)) != -1) {
+                                                    ChunkTransfer(fhs, i);
+                                                    //System.out.println("Copied chunk " + i + " from new version");
+                                                    fhs.aiaOld.array[i] = fhs.iaNew.array[i];
+                                                    fhs.aiaOld.sIndexes[i][0] = i;
                                                     updated++;
-                                                    notUp++;
-                                                } else {
-                                                    notUp++;
+                                                    //}
                                                 }
                                             }
+                                        } else {
+                                            if (fhs.aiaOld.searchColumnIndex(i, i) != -1) {
+                                                updated++;
+                                                notUp++;
+                                            } else {
+                                                notUp++;
+                                            }
                                         }
-                                        if (updated == iterations) {
-                                            break;
-                                        }
-                                        if (notUp == iterations) {
-                                            for (int i = 0; i < fhs.aiaOld.sIndexes.length; i++) {
-                                                if (fhs.aiaOld.searchColumnIndex(i, i) == -1 && fhs.aiaOld.sIndexes[i][0] != -1) {
-                                                    int len;
-                                                    if ((len = fhs.fcServerRead.read(buf, (long) i * ChunkSize)) != -1) {
-                                                        dChunk = fhs.getByteArray(buf);
-                                                        dBuf = fhs.aiaOld.array[i];
-                                                        dsIndexes = new int[fhs.aiaOld.sIndexes[i].length];
-                                                        System.arraycopy(fhs.aiaOld.sIndexes[i], 0, dsIndexes, 0, fhs.aiaOld.sIndexes[i].length);
-                                                        fhs.aiaOld.sIndexes[i] = new int[]{-1};
-                                                    }
+                                    }
+                                    if (updated == iterations) {
+                                        break;
+                                    }
+                                    if (notUp == iterations) {
+                                        for (int i = 0; i < fhs.aiaOld.sIndexes.length; i++) {
+                                            if (fhs.aiaOld.searchColumnIndex(i, i) == -1 && fhs.aiaOld.sIndexes[i][0] != -1) {
+                                                int len;
+                                                if ((len = fhs.fcServerRead.read(buf, (long) i * ChunkSize)) != -1) {
+                                                    dChunk = fhs.getByteArray(buf);
+                                                    dBuf = fhs.aiaOld.array[i];
+                                                    dsIndexes = new int[fhs.aiaOld.sIndexes[i].length];
+                                                    System.arraycopy(fhs.aiaOld.sIndexes[i], 0, dsIndexes, 0, fhs.aiaOld.sIndexes[i].length);
+                                                    fhs.aiaOld.sIndexes[i] = new int[]{-1};
                                                 }
                                             }
                                         }
                                     }
-                                    if (fhs.ServerFile.length() > fhs.newLength) {
-                                        fhs.fcServerWrite.truncate(fhs.newLength);
-                                        System.out.println("New file smaller -> Old file truncated to " + fhs.newLength);
-                                        long[] newArray = new long[(int) fhs.newChunks];
-                                        System.arraycopy(fhs.aiaOld.array, 0, newArray, 0, (int) fhs.newChunks);
-                                    }
-
-                                    fhs.writeDigests();
-                                    fhs.newCRCIndex.delete();
                                 }
-                            }
-                            chunkReq.newBuilder().setInd(-1).build().writeDelimitedTo(socket.getOutputStream());
-                        } catch (IOException | NumberFormatException | MyExc ex) {
-                            System.out.println("Error: " + ex.getMessage());
-                            if (RetryCount < 3) {
-                                RetryCount++;
-                            } else {
-                                break;
+                                if (fhs.ServerFile.length() > fhs.newLength) {
+                                    fhs.fcServerWrite.truncate(fhs.newLength);
+                                    System.out.println("New file smaller -> Old file truncated to " + fhs.newLength);
+                                    long[] newArray = new long[(int) fhs.newChunks];
+                                    System.arraycopy(fhs.aiaOld.array, 0, newArray, 0, (int) fhs.newChunks);
+                                }
+
+                                fhs.writeDigests();
+                                fhs.newCRCIndex.delete();
                             }
                         }
-                        
-                        System.out.println("Synchronization completed");
+                        chunkReq.newBuilder().setInd(-1).build().writeDelimitedTo(socket.getOutputStream());
+                    } catch (IOException | NumberFormatException | MyExc ex) {
+                        System.out.println("Error: " + ex.getMessage());
+                        if (RetryCount < 3) {
+                            RetryCount++;
+                        } else {
+                            break;
+                        }
                     }
-                    
+
+                    System.out.println("Synchronization completed");
+                    //}
+
                     socket.close();
                     ss.close();
                 } catch (IOException ex) {
