@@ -24,7 +24,8 @@ import dani3la.packet.protoPacket.data;
 import dani3la.packet.protoPacket.crcReq;
 
 /**
- *
+ * Classe che gestisce un file ed il relativo indice
+ * 
  * @author Stefano Fiordi
  */
 public class FileHandlerServer {

@@ -23,7 +23,8 @@ import dani3la.packet.protoPacket.resp;
 import dani3la.packet.protoPacket.chunkReq;
 
 /**
- *
+ * Classe principale che lancia il server e gestisce la sincronizzazione
+ * 
  * @author Stefano Fiordi
  */
 public class Dani3laServer {
@@ -434,7 +435,20 @@ public class Dani3laServer {
                 }
             }
             for (FileHandlerServer fhs : SyncFiles) {
+                try {
+                fhs.fcServerRead.close();
+                fhs.fcServerWrite.close();
+                fhs.ServerFile = null;
+                fhs.newCRCIndex = null;
+                fhs.oldCRCIndex = null;
                 fhs = null;
+                } catch (IOException ex) {
+                    System.out.println("Error: " + ex.getMessage());
+                }
+            }
+            SyncFiles = null;
+            for (File f : Files) {
+                f = null;
             }
             Files = null;
         }
