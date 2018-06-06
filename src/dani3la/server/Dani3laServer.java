@@ -148,6 +148,7 @@ public class Dani3laServer {
 
         while (true) {
             try {
+                System.out.println("Server is listening | Port: 6365");
                 ss = new ServerSocket(6365);
                 socket = ss.accept();
                 System.out.println("Connected to: " + socket.getRemoteSocketAddress());
@@ -433,11 +434,6 @@ public class Dani3laServer {
                 }
             }
             for (FileHandlerServer fhs : SyncFiles) {
-                try {
-                    fhs.fcServerWrite.close();
-                    fhs.fcServerRead.close();
-                } catch (IOException ex) {
-                }
                 fhs = null;
             }
             Files = null;

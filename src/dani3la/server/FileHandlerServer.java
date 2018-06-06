@@ -129,7 +129,7 @@ public class FileHandlerServer {
         this.ServerFile = ServerFile;
         this.ChunkSize = ChunkSize;
         this.newLength = FileLength;
-   
+
         if (!this.ServerFile.exists()) {
             ServerFile.createNewFile();
         }
@@ -192,7 +192,7 @@ public class FileHandlerServer {
             }
         }
     }
-    
+
     protected int countChunksToDownload() {
         int count = 0;
         for (long newInd : iaNew.array) {
@@ -206,7 +206,7 @@ public class FileHandlerServer {
                 count++;
             }
         }
-        
+
         return count;
     }
 
@@ -233,7 +233,7 @@ public class FileHandlerServer {
             nChunkPackets = ChunkLength / PacketLength + 1;
         }
     }
-    
+
     protected resp getChunkInfoRespPacket() {
         resp chunkInfoRespPacket;
         chunkInfoRespPacket = resp.newBuilder()
@@ -282,7 +282,7 @@ public class FileHandlerServer {
 
         return respPacket;
     }
-    
+
     protected crcReq getNewCRCRequest(long newVersion) {
         return crcReq.newBuilder()
                 .setCrc(newCRCIndex.getName())
@@ -482,10 +482,14 @@ public class FileHandlerServer {
         }
         aiaOld = new AIndexedArray(digests);
 
-        if ((len = reader.read(s)) != -1) {
-            oldVersion = Long.parseLong(new String(s));
+        if (aiaOld.array.length > 1) {
+            if ((len = reader.read(s)) != -1) {
+                oldVersion = Long.parseLong(new String(s));
+            } else {
+                throw new MyExc("Error while reading file version");
+            }
         } else {
-            throw new MyExc("Error while reading file version");
+            oldVersion = aiaOld.array[0];
         }
         reader.close();
     }
