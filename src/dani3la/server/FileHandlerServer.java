@@ -343,66 +343,6 @@ public class FileHandlerServer {
     }
 
     /**
-     * Metodo che crea il pacchetto di risposta al pacchetto informazioni
-     *
-     * @return il pacchetto di risposta
-     */
-    /*protected resp getInfoRespPacket() {
-        resp infoRespPacket;
-        if (this.startIndex != -1) {
-            infoRespPacket = resp.newBuilder()
-                    .setRes("ok")
-                    .setInd(this.startIndex)
-                    .build();
-        } else {
-            infoRespPacket = resp.newBuilder()
-                    .setRes("fae")
-                    .build();
-        }
-
-        return infoRespPacket;
-    }*/
-    /**
-     * Metodo che aggiunge il pacchetto ricevuto al file in caso il numero sia
-     * corretto, altrimenti richiede il pacchetto con il numero corretto, per un
-     * massimo di tre volte
-     *
-     * @param packet Il pacchetto da aggiungere al file
-     * @param packetIndex l'indice corretto
-     * @return il pacchetto protobuf di risposta
-     * @throws IOException
-     */
-    /*public resp addPacket(data packet, int packetIndex) throws IOException {
-        resp respPacket;
-
-        if (packet.getNum() == packetIndex) {
-            ByteString bsPacket = packet.getDat();
-            // accodo il pacchetto al file
-            Files.write(ServerFile.toPath(), bsPacket.toByteArray(), StandardOpenOption.APPEND);
-
-            respPacket = resp.newBuilder()
-                    .setRes("ok")
-                    .build();
-
-            RetryCount = 0;
-        } else {
-            if (RetryCount < 3) {
-                respPacket = resp.newBuilder()
-                        .setRes("wp") // wp: wrong packet
-                        .setInd(packetIndex) // right packet index
-                        .build();
-                RetryCount++;
-            } else {
-                respPacket = resp.newBuilder()
-                        .setRes("mrr") // mrr: max retry reached
-                        .build();
-                RetryCount = 0;
-            }
-        }
-
-        return respPacket;
-    }*/
-    /**
      * Crea il digest CRC32 di un array binario
      *
      * @param packet array binario

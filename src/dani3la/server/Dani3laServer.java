@@ -24,7 +24,7 @@ import dani3la.packet.protoPacket.chunkReq;
 
 /**
  * Classe principale che lancia il server e gestisce la sincronizzazione
- * 
+ *
  * @author Stefano Fiordi
  */
 public class Dani3laServer {
@@ -37,6 +37,7 @@ public class Dani3laServer {
     static FileHandlerServer SyncFiles[];
     static int RetryCount = 0;
     static boolean delete = true;
+    static Logger logger;
 
     /**
      * Scrive la configurazione del server sul file sConfig.ini
@@ -119,7 +120,9 @@ public class Dani3laServer {
         } else if (respEndPacket.getRes().equals("ok")) {
             ErrorCount = 0;
             if (i == fhs.nChunkPackets) {
+                logger.log("Download finished");
                 fhs.insertChunk(index);
+                logger.log("Inserted chunk to position " + index);
             }
         }
     }
@@ -149,10 +152,13 @@ public class Dani3laServer {
 
         while (true) {
             try {
+                logger = new Logger();
                 System.out.println("Server is listening | Port: 6365");
+                Logger.log("Server is listening | Port: 6365");
                 ss = new ServerSocket(6365);
                 socket = ss.accept();
                 System.out.println("Connected to: " + socket.getRemoteSocketAddress());
+                Logger.log("Connected to: " + socket.getRemoteSocketAddress());
                 if (!new File("sConfig.ini").exists()) {
                     writeDefaultConfig();
                 }
@@ -161,6 +167,7 @@ public class Dani3laServer {
                 System.out.println("Waiting for synchronization...");
                 crcInfo CRCInfoPacket = crcInfo.parseDelimitedFrom(socket.getInputStream());
                 System.out.println("Synchronization started...");
+                Logger.log("Synchronization started");
                 Files = syncDir.listFiles();
                 ChunkSize = CRCInfoPacket.getCsz();
                 SyncFiles = new FileHandlerServer[CRCInfoPacket.getCrcCount()];
@@ -179,7 +186,8 @@ public class Dani3laServer {
                         if (!SyncFiles[i].oldCRCIndex.exists() || SyncFiles[i].oldVersion != CRCInfoPacket.getVer(i)) {
                             SyncFiles[i].getNewCRCRequest(CRCInfoPacket.getVer(i)).writeDelimitedTo(socket.getOutputStream());
                             System.out.println("Downloading " + SyncFiles[i].newCRCIndex.getName());
-
+                            Logger.log("Downloading " + SyncFiles[i].newCRCIndex.getName());
+                                    
                             info newCRCInfoPacket = info.parseDelimitedFrom(socket.getInputStream());
                             System.out.println(newCRCInfoPacket.toString());
                             if (newCRCInfoPacket.getVer() == CRCInfoPacket.getVer(i)) {
@@ -235,12 +243,14 @@ public class Dani3laServer {
                             fhs.compareIndexes();
 
                             System.out.println("\nFile handling started...");
+                            Logger.log("File handling started");
                             // inizio delle operazioni di aggiornamento del vecchio file
                             if (fhs.oldChunks < fhs.newChunks) {
                                 long[] newArray = new long[(int) fhs.newChunks];
                                 System.arraycopy(fhs.aiaOld.array, 0, newArray, 0, fhs.aiaOld.array.length);
                                 fhs.aiaOld.array = newArray;
                                 System.out.println("\nNew version is bigger");
+                                Logger.log("New version is bigger");
                                 for (int i = fhs.aiaOld.sIndexes.length; i < fhs.aiaOld.array.length; i++) {
                                     int j;
                                     ByteBuffer buf = ByteBuffer.allocate(ChunkSize);
@@ -252,6 +262,7 @@ public class Dani3laServer {
                                                 fhs.ChunkToRecv = fhs.getByteArray(buf);
                                                 fhs.insertChunk(i);
                                                 //System.out.println("Copied chunk " + j + " to " + i);
+                                                Logger.log("Copied chunk " + j + " to " + i);
                                                 fhs.aiaOld.array[i] = fhs.aiaOld.array[j];
                                                 if (fhs.aiaOld.sIndexes[j].length == 1) {
                                                     fhs.aiaOld.sIndexes[j][0] = -1;
@@ -264,6 +275,7 @@ public class Dani3laServer {
                                     }
                                     if (j == fhs.aiaOld.sIndexes.length) {
                                         //System.out.println("Downloading chunk n." + i + "...");
+                                        Logger.log("Downloading chunk n." + i);
                                         ChunkTransfer(fhs, i);
                                         //System.out.println("Finished");
                                         //System.out.println("Copied chunk " + j + " from new version to " + i);
@@ -281,18 +293,21 @@ public class Dani3laServer {
                                 iterations = (int) fhs.newChunks;
                             }
                             System.out.println("Local file processing started...");
+                            Logger.log("Local file processing started");
                             while (true) {
                                 int updated = 0, notUp = 0;
                                 ByteBuffer buf = ByteBuffer.allocate(ChunkSize);
                                 for (int i = 0; i < iterations; i++) {
                                     if (fhs.aiaOld.sIndexes[i][0] == -1) {
                                         //System.out.println("Processing chunk " + i);
+                                        logger.log("Processing chunk " + i);
                                         int k = -1;
                                         if (dsIndexes != null && dChunk != null) {
                                             for (k = 0; k < dsIndexes.length; k++) {
                                                 if (dsIndexes[k] == i) {
                                                     fhs.fcServerWrite.write(ByteBuffer.wrap(dChunk), (long) i * ChunkSize);
                                                     //System.out.println("Copied buffer to " + i);
+                                                    logger.log("Copied buffer to position " + i);
                                                     fhs.aiaOld.array[i] = dBuf;
                                                     fhs.aiaOld.sIndexes[i][0] = i;
                                                     if (dsIndexes.length > 1) {
@@ -324,6 +339,7 @@ public class Dani3laServer {
                                                         //fOutOld.write(ByteBuffer.wrap(chunk), (long) i * ChunkSize);
                                                         fhs.insertChunk(i);
                                                         //System.out.println("Copied chunk " + j + " to " + i);
+                                                        logger.log("Copied chunk " + j + " to " + i);
                                                         fhs.aiaOld.array[i] = fhs.aiaOld.array[j];
                                                         fhs.aiaOld.sIndexes[i][0] = i;
                                                         if (fhs.aiaOld.sIndexes[j].length == 1) {
@@ -377,7 +393,8 @@ public class Dani3laServer {
                             }
                             if (fhs.ServerFile.length() > fhs.newLength) {
                                 fhs.fcServerWrite.truncate(fhs.newLength);
-                                System.out.println("New file smaller -> Old file truncated to " + fhs.newLength);
+                                System.out.println("New file is smaller -> Old file truncated to " + fhs.newLength);
+                                Logger.log("New file is smaller -> Old file truncated to " + fhs.newLength);
                                 long[] newArray = new long[(int) fhs.newChunks];
                                 System.arraycopy(fhs.aiaOld.array, 0, newArray, 0, (int) fhs.newChunks);
                             }
@@ -389,6 +406,7 @@ public class Dani3laServer {
                     chunkReq.newBuilder().setInd(-1).build().writeDelimitedTo(socket.getOutputStream());
                 } catch (IOException | NumberFormatException | MyExc ex) {
                     System.out.println("Error: " + ex.getMessage());
+                    Logger.log("Error: " + ex.getMessage());
                     if (RetryCount < 3) {
                         RetryCount++;
                     } else {
@@ -406,16 +424,19 @@ public class Dani3laServer {
                         }
                         if (i == SyncFiles.length) {
                             f.delete();
+                            logger.log("File " + f.getName() + "deleted");
                         }
                     }
                 }
 
                 System.out.println("Synchronization completed");
-
+                Logger.log("Synchronization completed");
+                
                 socket.close();
                 ss.close();
             } catch (IOException ex) {
                 System.out.println("Error: " + ex.getMessage());
+                Logger.log("Error: " + ex.getMessage());
                 if (socket != null) {
                     try {
                         socket.close();
@@ -436,14 +457,15 @@ public class Dani3laServer {
             }
             for (FileHandlerServer fhs : SyncFiles) {
                 try {
-                fhs.fcServerRead.close();
-                fhs.fcServerWrite.close();
-                fhs.ServerFile = null;
-                fhs.newCRCIndex = null;
-                fhs.oldCRCIndex = null;
-                fhs = null;
+                    fhs.fcServerRead.close();
+                    fhs.fcServerWrite.close();
+                    fhs.ServerFile = null;
+                    fhs.newCRCIndex = null;
+                    fhs.oldCRCIndex = null;
+                    fhs = null;
                 } catch (IOException ex) {
                     System.out.println("Error: " + ex.getMessage());
+                    Logger.log("Error: " + ex.getMessage());
                 }
             }
             SyncFiles = null;
@@ -451,6 +473,8 @@ public class Dani3laServer {
                 f = null;
             }
             Files = null;
+            
+            logger.closeLogger();
         }
     }
 
