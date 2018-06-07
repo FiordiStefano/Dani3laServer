@@ -1,7 +1,7 @@
-# DaniSyncServer
+# Dani3laServer
 Java server application for file synchronization
 
-Client: https://github.com/FiordiStefano/DaniSyncClient
+Client: https://github.com/FiordiStefano/Dani3laClient
 
 Messages format: Protobuf 3.5.1
 
