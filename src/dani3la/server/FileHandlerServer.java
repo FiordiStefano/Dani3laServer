@@ -19,9 +19,9 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
-import dani3la.packet.protoPacket.resp;
-import dani3la.packet.protoPacket.data;
-import dani3la.packet.protoPacket.crcReq;
+import packet.protoPacket.resp;
+import packet.protoPacket.data;
+import packet.protoPacket.crcReq;
 
 /**
  * Classe che gestisce un file ed il relativo indice
@@ -33,7 +33,7 @@ public class FileHandlerServer {
     /**
      * Dimensione dei pacchetti
      */
-    private final int PacketLength = 4096;
+    private final int PacketLength = 65536;
     /**
      * File da sincronizzare
      */

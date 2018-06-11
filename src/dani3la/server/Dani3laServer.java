@@ -15,12 +15,12 @@ import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import dani3la.packet.protoPacket.crcInfo;
-import dani3la.packet.protoPacket.crcReq;
-import dani3la.packet.protoPacket.data;
-import dani3la.packet.protoPacket.info;
-import dani3la.packet.protoPacket.resp;
-import dani3la.packet.protoPacket.chunkReq;
+import packet.protoPacket.crcInfo;
+import packet.protoPacket.crcReq;
+import packet.protoPacket.data;
+import packet.protoPacket.info;
+import packet.protoPacket.resp;
+import packet.protoPacket.chunkReq;
 
 /**
  * Classe principale che lancia il server e gestisce la sincronizzazione
@@ -91,19 +91,23 @@ public class Dani3laServer {
      * @throws MyExc se il trasferimento non va a buon fine
      */
     public static void ChunkTransfer(FileHandlerServer fhs, int index) throws IOException, MyExc {
+        logger.log("Sending request");
         chunkReq.newBuilder()
                 .setCrc(fhs.aiaOld.array[index])
                 .setInd(index)
                 .setNam(fhs.ServerFile.getName())
                 .build().writeDelimitedTo(socket.getOutputStream());
-
+        logger.log("Waiting for response");
         info infoChunkPacket = info.parseDelimitedFrom(socket.getInputStream());
+        logger.log("Got response");
         fhs.setChunkToRecv((int) infoChunkPacket.getLen());
         fhs.getChunkInfoRespPacket().writeDelimitedTo(socket.getOutputStream());
 
         int i = 0, ErrorCount = 0;
         for (; i < fhs.nChunkPackets; i++) {
+            logger.log("Downloading packet n." + i);
             data dataPacket = data.parseDelimitedFrom(socket.getInputStream());
+            logger.log("Download completed");
 
             resp respPacket = fhs.addChunkPacket(dataPacket, i);
             respPacket.writeDelimitedTo(socket.getOutputStream());
@@ -122,7 +126,7 @@ public class Dani3laServer {
             if (i == fhs.nChunkPackets) {
                 logger.log("Download finished");
                 fhs.insertChunk(index);
-                logger.log("Inserted chunk to position " + index);
+                logger.log("Inserted chunk into position " + index);
             }
         }
     }
@@ -152,11 +156,10 @@ public class Dani3laServer {
 
         while (true) {
             try {
-                logger = new Logger();
                 System.out.println("Server is listening | Port: 6365");
-                Logger.log("Server is listening | Port: 6365");
                 ss = new ServerSocket(6365);
                 socket = ss.accept();
+                logger = new Logger();
                 System.out.println("Connected to: " + socket.getRemoteSocketAddress());
                 Logger.log("Connected to: " + socket.getRemoteSocketAddress());
                 if (!new File("sConfig.ini").exists()) {
@@ -181,15 +184,19 @@ public class Dani3laServer {
                             }
                         }
                         if (j == Files.length) {
+                            if (new File("Indexes\\" + CRCInfoPacket.getCrc(i) + ".crc").exists()) {
+                                new File("Indexes\\" + CRCInfoPacket.getCrc(i) + ".crc").delete();
+                            }
                             SyncFiles[i] = new FileHandlerServer(new File(syncDir.getName() + "\\" + CRCInfoPacket.getCrc(i)), CRCInfoPacket.getLen(i), CRCInfoPacket.getCln(i), ChunkSize);
                         }
                         if (!SyncFiles[i].oldCRCIndex.exists() || SyncFiles[i].oldVersion != CRCInfoPacket.getVer(i)) {
                             SyncFiles[i].getNewCRCRequest(CRCInfoPacket.getVer(i)).writeDelimitedTo(socket.getOutputStream());
                             System.out.println("Downloading " + SyncFiles[i].newCRCIndex.getName());
-                            Logger.log("Downloading " + SyncFiles[i].newCRCIndex.getName());
+                            logger.log("Downloading " + SyncFiles[i].newCRCIndex.getName());
                                     
                             info newCRCInfoPacket = info.parseDelimitedFrom(socket.getInputStream());
-                            System.out.println(newCRCInfoPacket.toString());
+                            logger.log("Got info packet");
+                            //System.out.println(newCRCInfoPacket.toString());
                             if (newCRCInfoPacket.getVer() == CRCInfoPacket.getVer(i)) {
                                 SyncFiles[i].getCRCIndexInfoRespPacket().writeDelimitedTo(socket.getOutputStream());
                                 int k = 0, ErrorCount = 0;
@@ -242,8 +249,8 @@ public class Dani3laServer {
                         if (fhs.oldVersion != fhs.newVersion) {
                             fhs.compareIndexes();
 
-                            System.out.println("\nFile handling started...");
-                            Logger.log("File handling started");
+                            System.out.println("\n" + fhs.ServerFile.getName() + " handling started...");
+                            Logger.log(fhs.ServerFile.getName() + " handling started");
                             // inizio delle operazioni di aggiornamento del vecchio file
                             if (fhs.oldChunks < fhs.newChunks) {
                                 long[] newArray = new long[(int) fhs.newChunks];

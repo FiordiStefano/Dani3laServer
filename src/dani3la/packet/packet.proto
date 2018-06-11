@@ -22,7 +22,7 @@ message data {
 }
 
 message crcInfo {
-	int32 csz = 1;
+	uint32 csz = 1;
 	repeated int64 len = 2;
 	repeated string crc = 3;
 	repeated int64 ver = 4;

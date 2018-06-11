@@ -33,7 +33,8 @@ public class Logger {
             new File("Logs\\").mkdir();
         }
         try {
-            logger = new BufferedWriter(new FileWriter(new File("Logs\\" + LocalDateTime.now().format(DateTimeFormatter.ISO_DATE) + "_server.log"), true));
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmmss");
+            logger = new BufferedWriter(new FileWriter(new File("Logs\\" + LocalDateTime.now().format(formatter) + "_server.log"), true));
         } catch (IOException ex) {
             System.out.println("Unable to initialize logger: " + ex.getMessage());
         }
@@ -48,6 +49,7 @@ public class Logger {
         if (logger != null) {
             try {
                 logger.write("[" + LocalDateTime.now() + "] " + s);
+                logger.flush();
                 logger.newLine();
             } catch (IOException ex) {
                 System.out.println("Logger error");
